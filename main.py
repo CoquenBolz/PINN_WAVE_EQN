@@ -23,7 +23,6 @@ from layer import GradientLayer
 from optimize import L_BFGS_B
 
 
-
 def uInit(tx, c = 1, waveNum = 2, stdDev = 0.5):
     t = tx[..., 0, None]            # t is the 0th column of tx which we set to 0 before calling
     x = tx[..., 1, None]            # x is the 1th column of tx which we set to be a collection of random numbers on [0,l)
@@ -67,8 +66,8 @@ def buildPinn(network, grad, c):
     # initial condition output
     u_ini, du_dt_ini, _, _, _ = grad(tx_ini)
     # boundary condition output
-    #u_bnd = network(tx_bnd)  # dirichlet
-    _, _, u_bnd, _, _ = grad(tx_bnd)  # neumann
+    u_bnd = network(tx_bnd)  # dirichlet
+    # _, _, u_bnd, _, _ = grad(tx_bnd)  # neumann
 
     # build the PINN model for the wave equation
     return tf.keras.models.Model(
