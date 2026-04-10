@@ -1,6 +1,6 @@
 # PINN_WAVE_EQN
 
-This follows greatly from https://github.com/okada39/pinn_wave/blob/master/README.md with the exceptions that the classes network and pinn are consolidated to function in main.py
+This follows greatly from https://github.com/okada39/pinn_wave/blob/master/README.md with the exceptions that the classes network and pinn are consolidated to be functions in main.py
 
 # Version
 
