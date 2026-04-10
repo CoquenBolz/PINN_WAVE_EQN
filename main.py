@@ -22,12 +22,12 @@ import scipy.optimize               # import Scipy.optimize: python package full
 from layer import GradientLayer
 from optimize import L_BFGS_B
 
-
-def uInit(tx, c = 1, waveNum = 2, stdDev = 0.5):
+# ----------------------------------Funcs-----------------------------------------------------------------------------------------
+def uInit(tx, c = 1, waveNum = 2, stdDev = 0.5):    # Main way we can interact with our program here
     t = tx[..., 0, None]            # t is the 0th column of tx which we set to 0 before calling
     x = tx[..., 1, None]            # x is the 1th column of tx which we set to be a collection of random numbers on [0,l)
-    z = waveNum*x - (c*waveNum)*t   # create a tensor z, kinda don't get this part
-    return tf.sin(z) * tf.exp(-(z/(2*stdDev))**2)   # u(0, x) = sin(z) * e^{(-z/(2*stdev))^2}
+    z = waveNum*x - (c*waveNum)*t   # create a tensor z, kinda don't get this part, like we could just make the function without this it seems
+    return tf.sin(z) * tf.exp(-(z/(2*stdDev))**2)   # u(0, x) = sin(z) * e^{(-z/(2*stdev))^2}, just the function used by the smart people
 
 def vInit(tx):
     with tf.GradientTape() as g:
@@ -73,11 +73,18 @@ def buildPinn(network, grad, c):
     return tf.keras.models.Model(
         inputs=[tx_eqn, tx_ini, tx_bnd],
         outputs=[u_eqn, u_ini, du_dt_ini, u_bnd])
+#---------------------------------------------------------------------------------------------------------------------------------
 
-# number of training samples
-num_train_samples = 10000
-# number of test samples
-num_test_samples = 1000
+#----------------------------------Script-----------------------------------------------------------------------------------------
+
+#--------Variables----------#
+num_train_samples = 1000
+num_test_samples = 100
+c = 1                   # wave speed
+l = 4                   # length of string
+x_o = 0                 # x coordinate of the left bound of the string
+time_length = 2         # length of time
+#---------------------------#
 
 # build a core network model
 network = buildNetwork()
@@ -87,15 +94,17 @@ grads= GradientLayer(network)
 pinn = buildPinn(network, grads, 1)
 
 # create training input
-tx_eqn = np.random.rand(num_train_samples, 2)
-tx_eqn[..., 0] = 4*tx_eqn[..., 0]                # t =  0 ~ +4
-tx_eqn[..., 1] = 2*tx_eqn[..., 1] - 1            # x = -1 ~ +1
+tx_eqn = np.random.rand(num_train_samples, 2)   # This function just makes a matrix with 2 columns and num_train_samples 
+                                                # rows with a random given value between 0 and 1
+tx_eqn[..., 0] = time_length*tx_eqn[..., 0]
+tx_eqn[..., 1] = l*tx_eqn[..., 1] - x_o
 tx_ini = np.random.rand(num_train_samples, 2)
-tx_ini[..., 0] = 0                               # t = 0
-tx_ini[..., 1] = 2*tx_ini[..., 1] - 1            # x = -1 ~ +1
+tx_ini[..., 0] = 0                              # t_o = 0
+tx_ini[..., 1] = l*tx_ini[..., 1] - x_o
 tx_bnd = np.random.rand(num_train_samples, 2)
-tx_bnd[..., 0] = 4*tx_bnd[..., 0]                # t =  0 ~ +4
-tx_bnd[..., 1] = 2*np.round(tx_bnd[..., 1]) - 1  # x = -1 or +1
+tx_bnd[..., 0] = 4*tx_bnd[..., 0]
+tx_bnd[..., 1] = l*np.round(tx_bnd[..., 1]) - x_o
+
 # create training output
 u_zero = np.zeros((num_train_samples, 1))
 u_ini = uInit(tf.constant(tx_ini)).numpy()
