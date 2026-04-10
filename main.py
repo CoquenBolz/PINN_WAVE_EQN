@@ -23,19 +23,17 @@ from layer import GradientLayer
 from optimize import L_BFGS_B
 
 # ----------------------------------Funcs-----------------------------------------------------------------------------------------
-def uInit(tx, c = 1, waveNum = 2, stdDev = 0.5):    # Main way we can interact with our program here
+def uInit(tx, c = 1):               # Main way we can interact with our program here
     t = tx[..., 0, None]            # t is the 0th column of tx which we set to 0 before calling
     x = tx[..., 1, None]            # x is the 1th column of tx which we set to be a collection of random numbers on [0,l)
-    z = waveNum*x - (c*waveNum)*t   # create a tensor z, kinda don't get this part, like we could just make the function without this it seems
-    return tf.sin(z) * tf.exp(-(z/(2*stdDev))**2)   # u(0, x) = sin(z) * e^{(-z/(2*stdev))^2}, just the function used by the smart people
+    return tf.sin(3.14159*x/4)/2    # u(x, 0) = (1/2)sin(pi x/4) from ex. 1 on our pde packet
 
-def vInit(tx):
-    with tf.GradientTape() as g:
-        g.watch(tx)
-        u = uInit(tx)
-    vo = g.batch_jacobian(u, tx)[...,0]
-    return vo
+def vInit(tx):                      # Another main way we can interact with our program here
+    t = tx[..., 0, None]            # t is the 0th column of tx which we set to 0 before calling
+    x = tx[..., 1, None]            # x is the 1th column of tx which we set to be a collection of random numbers on [0,l)
+    return - tf.sin(3.14159*x/2)
 
+# 2 function below are more back-end procedures
 def buildNetwork(num_inputs=2, layers=[32, 16, 16, 32], num_outputs=1): # returns a network of layers I guess lol
     # input layer
     inputs = tf.keras.layers.Input(shape=(num_inputs,))
@@ -76,14 +74,14 @@ def buildPinn(network, grad, c):
 #---------------------------------------------------------------------------------------------------------------------------------
 
 #----------------------------------Script-----------------------------------------------------------------------------------------
-
+print("hello")
 #--------Variables----------#
-num_train_samples = 1000
-num_test_samples = 100
+num_train_samples = 10000
+num_test_samples = 1000
 c = 1                   # wave speed
 l = 4                   # length of string
 x_o = 0                 # x coordinate of the left bound of the string
-time_length = 2         # length of time
+time_length = 1.333     # length of time
 #---------------------------#
 
 # build a core network model
@@ -116,8 +114,8 @@ opper = L_BFGS_B(pinn, x_train, y_train)
 opper.fit()
 
 # predict u(t,x) distribution
-t_flat = np.linspace(0, 4, num_test_samples)
-x_flat = np.linspace(-1, 1, num_test_samples)
+t_flat = np.linspace(0, time_length, num_test_samples)
+x_flat = np.linspace(x_o, l, num_test_samples)
 t, x = np.meshgrid(t_flat, x_flat)
 tx = np.stack([t.flatten(), x.flatten()], axis=-1)
 u = network.predict(tx, batch_size=num_test_samples)
@@ -135,7 +133,8 @@ cbar = plt.colorbar(pad=0.05, aspect=10)
 cbar.set_label('u(t,x)')
 cbar.mappable.set_clim(vmin, vmax)
 # plot u(t=const, x) cross-sections
-t_cross_sections = [1, 2, 3]
+cross_time = time_length/3
+t_cross_sections = [cross_time, 2*cross_time, 3*cross_time]
 for i, t_cs in enumerate(t_cross_sections):
     plt.subplot(gs[1, i])
     tx = np.stack([np.full(t_flat.shape, t_cs), x_flat], axis=-1)
@@ -145,5 +144,5 @@ for i, t_cs in enumerate(t_cross_sections):
     plt.xlabel('x')
     plt.ylabel('u(t,x)')
 plt.tight_layout()
-plt.savefig('result_img_neumann.png', transparent=True)
+plt.savefig('result_img_dirichlet.png', transparent=True)
 plt.show()
